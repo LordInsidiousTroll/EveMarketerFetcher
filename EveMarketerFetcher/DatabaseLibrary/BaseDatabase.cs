@@ -5,6 +5,7 @@ using System.Data;
 using System.Data.Common;
 using System.Data.SQLite;
 using System.Threading;
+using DatabaseLibrary.Models;
 
 namespace DatabaseLibrary {
     public class BaseDatabase {
@@ -18,25 +19,28 @@ namespace DatabaseLibrary {
             m_db = new DbContext(dbPath);
         }
 
-        public TResult ExecuteQuerySingleReturn<TResult>(SQLiteCommand command) {
-
+        public TResult ExecuteQuerySingleReturn<TResult>(SQLiteCommand command, bool isDbModel = false) {
             TResult result = default(TResult);
-
             try {
-                result = ExecuteQuery(command, new Func<SQLiteDataReader, TResult>(reader => {
+                result = ExecuteQuery(command, new Func<SQLiteDataReader, TResult>((reader) => {
                     while (reader.Read()) {
-                        if (reader[0] == System.DBNull.Value)
-                            result = default(TResult);
-                        else
-                            result = (TResult)reader[0];
+                        if (isDbModel) {
+                            result = ModelObjectFactory.CreateObject<TResult>(reader);
+                        }
+                        else {
+                            if (reader[0] == System.DBNull.Value)
+                                result = default(TResult);
+                            else
+                                result = (TResult)reader[0];
+                        }
                     }
                     return result;
                 }));
             }
-            catch(Exception e) {
-
+            catch (Exception e) {
+                Console.WriteLine("[ExecuteQuerySingleReturn][e]");
+                Console.WriteLine(e.Message);
             }
-
             return result;
         }
 
@@ -138,6 +142,40 @@ namespace DatabaseLibrary {
                 }
 
             }
+            return result;
+        }
+
+        public List<TResult> ExecuteQueryMultipleReturn<TResult>(SQLiteCommand command, bool isDbModel = false) {
+            List<TResult> result = new List<TResult>();
+            result = ExecuteQuery(command, new Func<SQLiteDataReader, List<TResult>>((reader) => {
+                var results = new List<TResult>();
+                try {
+                    while (reader.Read()) {
+                        if (isDbModel) {
+                            results.Add(ModelObjectFactory.CreateObject<TResult>(reader));
+                        }
+                        else {
+                            if (reader.HasRows && reader.FieldCount > 0) {
+                                if (reader[0] == System.DBNull.Value)
+                                    results.Add(default(TResult));
+                                else {
+                                    var obj = reader[0];
+                                    if (obj.GetType() == typeof(TResult))
+                                        results.Add((TResult)(obj));
+                                    else
+                                        results.Add((TResult)(obj.ToString() as object));
+                                }
+                            }
+                        }
+                    }
+                    return results;
+                }
+                catch (Exception exc) {
+                    Console.WriteLine("[ExecuteQueryMultipleReturn][exc]");
+                    Console.WriteLine(exc.Message);
+                }
+                return results;
+            }));
             return result;
         }
     }

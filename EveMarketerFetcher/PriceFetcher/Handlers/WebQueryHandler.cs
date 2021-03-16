@@ -3,6 +3,8 @@ using System.Collections.Generic;
 using System.IO;
 using System.Net;
 using System.Text;
+using DatabaseLibrary;
+using static DatabaseLibrary.Resources;
 
 namespace PriceFetcher.Handlers {
     public class WebQueryHandler {
@@ -23,5 +25,14 @@ namespace PriceFetcher.Handlers {
             return rt;
         }
 
+        public static string GetUrl(string itemId, string systemId) {
+            string a = $"https://api.evemarketer.com/ec/marketstat?typeid={itemId}&usesystem={systemId}";
+            return DoQuery(a);
+        }
+
+        public static string GetUrl(string itemId, SystemId system) {
+            string a = $"https://api.evemarketer.com/ec/marketstat?typeid={itemId}&usesystem={system.ToString()}";
+            return DoQuery(a);
+        }
     }
 }

@@ -13,10 +13,11 @@ namespace DatabaseLibrary {
 
         #region Insert methods
         public static void InsertNewItem(Item item) {
-            string values = $"";
-            string vars = $"";
-            string s = $"Insert Info Items ({vars}) Values ({values});";
+            string vars = $"Id, ItemName";
+            string values = $"{item.Id}, '{item.ItemName.Replace("'", "''")}'";
+            string s = $"Insert Into Items ({vars}) Values ({values});";
             DB.ExecuteNonQuery(new SQLiteCommand(s));
+
         }
 
         public static void InsertNewSystem(DatabaseLibrary.Models.SolarSystem system) {
@@ -36,29 +37,35 @@ namespace DatabaseLibrary {
 
         #region Update methods
         public static void UpdateItemPriceData(ItemPriceData ipd) {
-            string vars = $"SellPrice = '{ipd.SellPrice}', '{ipd.BuyPrice}', '{ipd.SellVolume}', '{ipd.BuyVolume}'";
-            string s = $"Update ItemPrices ({vars}) Where Id = '{ipd.Id}';";
+            string vars = $"SellPrice = {ipd.SellPrice}, {ipd.BuyPrice}, {ipd.SellVolume}, {ipd.BuyVolume}";
+            string s = $"Update ItemPrices ({vars}) Where Id = {ipd.Id};";
             DB.ExecuteNonQuery(new SQLiteCommand(s));
         }
 
         public static void UpdateItemPriceById(string itemId, SystemId systemId, string sellPrice, string buyPrice) {
-            string vars = $"SellPrice = '{buyPrice}', BuyPrice = '{buyPrice}'";
-            string s = $"Update ItemsPrices ({vars}) Where Id = '{itemId}' and SystemId = '{systemId}';";
+            string vars = $"SellPrice = {buyPrice}, BuyPrice = {buyPrice}";
+            string s = $"Update ItemsPrices ({vars}) Where Id = {itemId} and SystemId = {systemId};";
             DB.ExecuteNonQuery(new SQLiteCommand(s));
         }
         #endregion
 
         #region Getter methods
         public static List<ItemPriceData> GetItemPriceDataById(string itemId) {
-            string s = $"Select * From ItemPrices Where Id = '{itemId}';";
+            string s = $"Select * From ItemPrices Where Id = {itemId};";
             var list = DB.ExecuteQueryMultipleReturn<ItemPriceData>(new SQLiteCommand(s), true);
             return list;
         }
 
         public static List<ItemPriceData> GetItemPriceDataByName(string itemName) {
-            string s = $"Select * From ItemPrices Where ItemName = {itemName}';";
-            var list = DB.ExecuteQueryMultipleReturn<ItemPriceData>(new SQLiteCommand(s), true);
-            return list;
+            string s = $"Select Id From Items Where ItemName = {itemName};";
+            var id = DB.ExecuteQuerySingleReturn<int>(new SQLiteCommand(s), true);
+
+            return GetItemPriceDataById(id + "");
+        }
+
+        public static List<int> GetAllIds() {
+            string s = $"Select Id From Items;";
+            return DB.ExecuteQueryMultipleReturn<int>(new SQLiteCommand(s));
         }
 
         #region Find overall buy or sell price between Jita and Perimeter
